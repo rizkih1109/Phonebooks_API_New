@@ -1,12 +1,21 @@
 var express = require('express');
 var router = express.Router();
 const models = require('../models');
-const { where } = require('sequelize');
+const { where, Op } = require('sequelize');
 
 router.get('/', async (req, res, next) => {
   try {
-    const users = await models.User.findAll()
-    res.status(200).json(users)
+    const { keyword = '' } = req.query
+
+    const { count, rows } = await models.User.findAndCountAll({
+      where: {
+        [Op.or]: [
+          { name: { [Op.iLike]: `%${keyword}%` } },
+          { phone: { [Op.like]: `%${keyword}%` } }
+        ]
+      }
+    })
+    res.status(200).json({ Phonebooks: rows, count })
   } catch (err) {
     console.log(err)
     res.status(500).json(err)
@@ -43,7 +52,7 @@ router.put('/:id', async (req, res, next) => {
 
 router.delete('/:id', async (req, res, next) => {
   try {
-    const user = await models.User.findOne({where: {id: req.params.id}})
+    const user = await models.User.findOne({ where: { id: req.params.id } })
     const userDelete = await models.User.destroy({
       where: {
         id: req.params.id
