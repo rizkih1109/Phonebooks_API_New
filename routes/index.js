@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 const models = require('../models');
+const path = require('path');
 const { where, Op } = require('sequelize');
 
 router.get('/', async (req, res, next) => {
@@ -48,6 +49,37 @@ router.put('/:id', async (req, res, next) => {
       plain: true
     })
     res.status(201).json(user[1])
+  } catch (err) {
+    console.log(err)
+    res.status(500).json(err)
+  }
+});
+
+router.put('/:id/avatar', async (req, res, next) => {
+  try {
+    let avatar;
+    let uploadPath;
+
+    if (!req.files || Object.keys(req.files).length === 0) {
+      return res.status(400).send('No files were uploaded.');
+    }
+
+    avatar = req.files.avatar;
+    let fileName = Date.now() + '-' + avatar.name;
+    uploadPath = path.join(__dirname, '..', 'public', 'images', fileName)
+    avatar.mv(uploadPath, async (err) => {
+      if (err)
+        return res.status(500).send(err);
+
+      const user = await models.User.update({ avatar: fileName }, {
+        where: {
+          id: req.params.id
+        },
+        returning: true,
+        plain: true
+      })
+      res.status(201).json(user[1])
+    });
   } catch (err) {
     console.log(err)
     res.status(500).json(err)
