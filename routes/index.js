@@ -2,12 +2,12 @@ var express = require('express');
 var router = express.Router();
 const models = require('../models');
 const path = require('path');
+const fs = require('fs')
 const { where, Op } = require('sequelize');
 
 router.get('/', async (req, res, next) => {
   try {
     const { page = 1, limit = 10, offset, keyword = '', sort = "ASC" } = req.query
-
     const { count, rows } = await models.User.findAndCountAll({
       where: {
         [Op.or]: [
@@ -57,7 +57,6 @@ router.put('/:id', async (req, res, next) => {
 
 router.put('/:id/avatar', async (req, res, next) => {
   try {
-    console.log(req.files)
     let avatar;
     let uploadPath;
 
@@ -66,9 +65,21 @@ router.put('/:id/avatar', async (req, res, next) => {
     }
 
     avatar = req.files.avatar;
-    console.log(avatar)
     let fileName = Date.now() + '-' + avatar.name;
     uploadPath = path.join(__dirname, '..', 'public', 'images', fileName)
+
+    const userPrev = await models.User.findOne({ where: { id: req.params.id } })
+    const oldAvatar = userPrev.avatar
+
+    if (oldAvatar) {
+      const filePath = path.resolve(__dirname, '../public/images/', oldAvatar);
+      if (fs.existsSync(filePath)) {
+        fs.unlink(filePath, (err) => {
+          console.log(err)
+        })
+      }
+    }
+
     avatar.mv(uploadPath, async (err) => {
       if (err)
         return res.status(500).send(err);
@@ -80,7 +91,6 @@ router.put('/:id/avatar', async (req, res, next) => {
         returning: true,
         plain: true
       })
-      console.log(user)
       res.status(201).json(user[1])
     });
   } catch (err) {
@@ -92,6 +102,15 @@ router.put('/:id/avatar', async (req, res, next) => {
 router.delete('/:id', async (req, res, next) => {
   try {
     const user = await models.User.findOne({ where: { id: req.params.id } })
+    const file = user.avatar
+
+    const filePath = path.resolve(__dirname, '../public/images/', file);
+    if (fs.existsSync(filePath)) {
+      fs.unlink(filePath, (err) => {
+        console.log(err)
+      })
+    }
+
     const userDelete = await models.User.destroy({
       where: {
         id: req.params.id
