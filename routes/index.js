@@ -57,6 +57,7 @@ router.put('/:id', async (req, res, next) => {
 
 router.put('/:id/avatar', async (req, res, next) => {
   try {
+    console.log(req.files)
     let avatar;
     let uploadPath;
 
@@ -65,6 +66,7 @@ router.put('/:id/avatar', async (req, res, next) => {
     }
 
     avatar = req.files.avatar;
+    console.log(avatar)
     let fileName = Date.now() + '-' + avatar.name;
     uploadPath = path.join(__dirname, '..', 'public', 'images', fileName)
     avatar.mv(uploadPath, async (err) => {
@@ -78,6 +80,7 @@ router.put('/:id/avatar', async (req, res, next) => {
         returning: true,
         plain: true
       })
+      console.log(user)
       res.status(201).json(user[1])
     });
   } catch (err) {
